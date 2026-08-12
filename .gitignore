@@ -1,0 +1,63 @@
+# === Python ===
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+*.egg
+
+# === Ambientes Virtuais ===
+.venv/
+venv/
+env/
+
+# === IDE ===
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# === Dados ===
+data/raw/*.csv
+data/processed/*.csv
+data/processed/*.parquet
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!data/sample/
+
+# === Modelos (reconstruídos pelo treino) ===
+models/*.joblib
+models/*.onnx
+models/*.json
+!models/.gitkeep
+
+# === Testes e Cobertura ===
+.pytest_cache/
+htmlcov/
+.coverage
+coverage.xml
+
+# === Ruff / MyPy ===
+.ruff_cache/
+.mypy_cache/
+
+# === Airflow ===
+airflow/logs/
+airflow/airflow.db
+airflow/airflow.cfg
+
+# === Sistema ===
+.DS_Store
+Thumbs.db
+
+# === Ambiente ===
+.env
+
+# === Docker ===
+docker-compose.override.yml
+
+# === Enunciado ===
+*.pdf

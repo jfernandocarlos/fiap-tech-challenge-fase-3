@@ -1,0 +1,28 @@
+[tool.poetry]
+name = "medical-triage-api"
+version = "1.0.0"
+description = "API de triagem de laudos médicos — NLP, CI/CD, Prometheus/Grafana e ONNX"
+authors = ["Seu Nome <seu@email.com>"]
+readme = "README.md"
+packages = [{ include = "triage", from = "src" }]
+
+[tool.poetry.dependencies]
+python = ">=3.10,<3.13"
+
+[tool.poetry.group.dev.dependencies]
+ruff = ">=0.8"
+pytest = ">=8.0"
+pre-commit = ">=4.0"
+
+[build-system]
+requires = ["poetry-core>=1.8.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+src = ["src", "tests", "scripts"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v --tb=short"
