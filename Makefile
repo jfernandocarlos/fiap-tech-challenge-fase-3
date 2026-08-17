@@ -1,5 +1,4 @@
-.PHONY: help install validate lint format test download-data train benchmark \
-        api-up stack-up stack-down docker-build clean
+.PHONY: help install lint format test download-data clean
 
 PYTHON := python
 
@@ -12,11 +11,18 @@ install: ## Instala dependências com Poetry
 	poetry run pre-commit install || true
 
 lint: ## Lint com ruff
-	poetry run ruff check src tests scripts airflow
-	poetry run ruff format --check src tests scripts airflow
+	poetry run ruff check src tests scripts
+	poetry run ruff format --check src tests scripts
+
+format: ## Formata código
+	poetry run ruff format src tests scripts
+	poetry run ruff check --fix src tests scripts
 
 test: ## Executa testes
 	poetry run pytest
+
+download-data: ## Baixa Medical Abstracts TC Corpus
+	poetry run $(PYTHON) -m scripts.download_data
 
 clean: ## Remove caches locais
 	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true

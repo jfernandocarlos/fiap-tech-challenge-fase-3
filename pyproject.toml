@@ -12,6 +12,8 @@ pydantic-settings = "2.6.1"
 python-dotenv = "1.0.1"
 structlog = "24.4.0"
 pyyaml = "6.0.2"
+pandas = "2.2.3"
+numpy = "1.26.4"
 
 [tool.poetry.group.dev.dependencies]
 ruff = ">=0.8"
