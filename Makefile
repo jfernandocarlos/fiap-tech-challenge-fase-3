@@ -1,4 +1,4 @@
-.PHONY: help install lint format test download-data clean
+.PHONY: help install lint format test download-data train clean
 
 PYTHON := python
 
@@ -23,6 +23,9 @@ test: ## Executa testes
 
 download-data: ## Baixa Medical Abstracts TC Corpus
 	poetry run $(PYTHON) -m scripts.download_data
+
+train: ## Treina classificador e salva joblib
+	poetry run $(PYTHON) -m scripts.train
 
 clean: ## Remove caches locais
 	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
