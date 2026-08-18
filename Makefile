@@ -33,6 +33,9 @@ api-up: ## Sobe apenas a API localmente
 docker-build: ## Build da imagem Docker (requer modelos treinados)
 	docker build -t medical-triage-api:latest .
 
+validate: ## Valida ambiente local
+	poetry run $(PYTHON) -m scripts.validate_env
+
 clean: ## Remove caches locais
 	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
 	rm -rf .pytest_cache .ruff_cache .mypy_cache htmlcov .coverage
