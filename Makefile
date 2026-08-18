@@ -30,6 +30,9 @@ train: ## Treina classificador e salva joblib
 api-up: ## Sobe apenas a API localmente
 	poetry run uvicorn src.triage.api.app:app --host 0.0.0.0 --port 8000
 
+docker-build: ## Build da imagem Docker (requer modelos treinados)
+	docker build -t medical-triage-api:latest .
+
 clean: ## Remove caches locais
 	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
 	rm -rf .pytest_cache .ruff_cache .mypy_cache htmlcov .coverage
