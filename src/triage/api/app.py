@@ -61,7 +61,7 @@ async def predict(report: ReportInput) -> PredictionResponse:
 
     try:
         label, probabilities = registry.predict(report.text)
-    except Exception as exc:
+    except (RuntimeError, ValueError) as exc:
         logger.exception("erro na predição")
         raise HTTPException(status_code=500, detail="Erro interno na predição") from exc
 

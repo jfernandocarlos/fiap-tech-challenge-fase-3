@@ -20,8 +20,10 @@ MIN_PYTHON = (3, 10)
 def _check_python() -> list[str]:
     if sys.version_info < MIN_PYTHON:
         return [
-            f"Python {MIN_PYTHON[0]}.{MIN_PYTHON[1]}+ requerido "
-            f"(atual: {sys.version.split()[0]})"
+            (
+                f"Python {MIN_PYTHON[0]}.{MIN_PYTHON[1]}+ requerido "
+                f"(atual: {sys.version.split()[0]})"
+            )
         ]
     return []
 

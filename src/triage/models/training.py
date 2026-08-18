@@ -64,9 +64,9 @@ def train_model(source: str = "raw") -> tuple[Pipeline, dict[str, object]]:
     baseline_pred = baseline.predict(x_test)
     metrics: dict[str, object] = {
         "trained_at": datetime.now(timezone.utc).isoformat(),
-        "n_samples": int(len(df)),
-        "n_train": int(len(x_train)),
-        "n_test": int(len(x_test)),
+        "n_samples": len(df),
+        "n_train": len(x_train),
+        "n_test": len(x_test),
         "production_model": "tfidf_logistic_regression",
         "accuracy": float(accuracy_score(y_test, y_pred)),
         "precision_macro": float(precision_score(y_test, y_pred, average="macro")),

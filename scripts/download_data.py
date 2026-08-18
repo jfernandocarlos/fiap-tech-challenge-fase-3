@@ -2,6 +2,7 @@
 
 import sys
 from pathlib import Path
+from urllib.error import URLError
 from urllib.request import urlretrieve
 
 from src.triage.config import DATA_RAW_DIR
@@ -28,6 +29,6 @@ def main() -> None:
 if __name__ == "__main__":
     try:
         main()
-    except Exception as exc:
+    except (OSError, URLError) as exc:
         print(f"Erro no download: {exc}", file=sys.stderr)
         sys.exit(1)
