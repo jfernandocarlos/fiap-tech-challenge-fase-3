@@ -1,4 +1,4 @@
-.PHONY: help install lint format test download-data train clean
+.PHONY: help install lint format test download-data train api-up clean
 
 PYTHON := python
 
@@ -26,6 +26,9 @@ download-data: ## Baixa Medical Abstracts TC Corpus
 
 train: ## Treina classificador e salva joblib
 	poetry run $(PYTHON) -m scripts.train
+
+api-up: ## Sobe apenas a API localmente
+	poetry run uvicorn src.triage.api.app:app --host 0.0.0.0 --port 8000
 
 clean: ## Remove caches locais
 	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
