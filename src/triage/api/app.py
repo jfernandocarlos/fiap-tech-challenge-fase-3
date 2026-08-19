@@ -1,15 +1,20 @@
 """API FastAPI de triagem de laudos médicos."""
 
+import time
 from contextlib import asynccontextmanager
 
 import uvicorn
 from fastapi import FastAPI, HTTPException
+from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from src.triage import __version__
+from src.triage.api.metrics import PREDICTION_COUNT, PREDICTION_LATENCY
+from src.triage.api.middleware import MetricsMiddleware
 from src.triage.api.schemas import HealthResponse, PredictionResponse, ReportInput
 from src.triage.config import settings
 from src.triage.data.schema import UrgencyLevel
 from src.triage.logging_config import get_logger, setup_logging
 from src.triage.models.inference import ModelRegistry
+from starlette.responses import Response
 
 logger = get_logger(__name__)
 registry = ModelRegistry()
@@ -37,6 +42,8 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+app.add_middleware(MetricsMiddleware)
+
 
 @app.get("/health", response_model=HealthResponse, tags=["Monitoramento"])
 async def health_check() -> HealthResponse:
@@ -50,6 +57,12 @@ async def health_check() -> HealthResponse:
     )
 
 
+@app.get("/metrics", tags=["Monitoramento"])
+async def metrics() -> Response:
+    """Endpoint Prometheus."""
+    return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
+
+
 @app.post("/predict", response_model=PredictionResponse, tags=["Predição"])
 async def predict(report: ReportInput) -> PredictionResponse:
     """Classifica urgência de um laudo médico."""
@@ -59,11 +72,16 @@ async def predict(report: ReportInput) -> PredictionResponse:
             detail="Modelo não carregado. Execute 'make train' e reinicie a API.",
         )
 
+    start = time.perf_counter()
     try:
         label, probabilities = registry.predict(report.text)
     except (RuntimeError, ValueError) as exc:
         logger.exception("erro na predição")
         raise HTTPException(status_code=500, detail="Erro interno na predição") from exc
+    finally:
+        PREDICTION_LATENCY.labels(backend=registry.backend_name).observe(
+            time.perf_counter() - start
+        )
 
     urgency = UrgencyLevel(label)
     confidence = probabilities.get(label, 0.0)
@@ -73,6 +91,7 @@ async def predict(report: ReportInput) -> PredictionResponse:
         if key in UrgencyLevel._value2member_map_
     }
 
+    PREDICTION_COUNT.labels(urgency=urgency.value).inc()
     logger.info("predição realizada", urgency=urgency.value, confidence=round(confidence, 4))
 
     return PredictionResponse(

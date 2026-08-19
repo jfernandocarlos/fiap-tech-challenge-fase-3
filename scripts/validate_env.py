@@ -13,6 +13,7 @@ REQUIRED_PACKAGES = [
     "pydantic_settings",
     "yaml",
     "joblib",
+    "prometheus_client",
 ]
 MIN_PYTHON = (3, 10)
 
