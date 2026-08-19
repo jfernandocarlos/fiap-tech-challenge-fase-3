@@ -19,9 +19,9 @@ jobs:
       - name: Install dependencies
         run: poetry install --no-interaction
       - name: Ruff check
-        run: poetry run ruff check src tests scripts
+        run: poetry run ruff check src tests scripts airflow
       - name: Ruff format check
-        run: poetry run ruff format --check src tests scripts
+        run: poetry run ruff format --check src tests scripts airflow
 
   test:
     runs-on: ubuntu-latest
