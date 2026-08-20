@@ -36,6 +36,12 @@ docker-build: ## Build da imagem Docker (requer modelos treinados)
 validate: ## Valida ambiente local
 	poetry run $(PYTHON) -m scripts.validate_env
 
+stack-up: ## Sobe API + Prometheus + Grafana
+	docker compose up --build -d
+
+stack-down: ## Para stack de monitoramento
+	docker compose down
+
 clean: ## Remove caches locais
 	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
 	rm -rf .pytest_cache .ruff_cache .mypy_cache htmlcov .coverage
