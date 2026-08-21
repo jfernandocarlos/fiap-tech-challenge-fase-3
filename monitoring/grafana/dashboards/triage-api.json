@@ -1,0 +1,72 @@
+{
+    "annotations": {"list": []},
+    "editable": true,
+    "fiscalYearStartMonth": 0,
+    "graphTooltip": 0,
+    "id": null,
+    "links": [],
+    "panels": [
+      {
+        "datasource": {"type": "prometheus", "uid": "Prometheus"},
+        "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []},
+        "gridPos": {"h": 8, "w": 8, "x": 0, "y": 0},
+        "id": 1,
+        "options": {"reduceOptions": {"calcs": ["lastNotNull"]}},
+        "targets": [
+          {
+            "expr": "sum(triage_requests_total)",
+            "legendFormat": "Total de requisições",
+            "refId": "A"
+          }
+        ],
+        "title": "Total de requisições",
+        "type": "stat"
+      },
+      {
+        "datasource": {"type": "prometheus", "uid": "Prometheus"},
+        "fieldConfig": {"defaults": {"unit": "s"}, "overrides": []},
+        "gridPos": {"h": 8, "w": 8, "x": 8, "y": 0},
+        "id": 2,
+        "options": {"legend": {"displayMode": "list"}},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(triage_request_latency_seconds_bucket[5m])) by (le))",
+            "legendFormat": "p95 latência HTTP",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(triage_prediction_latency_seconds_bucket[5m])) by (le, backend))",
+            "legendFormat": "p95 inferência {{backend}}",
+            "refId": "B"
+          }
+        ],
+        "title": "Latência (p95)",
+        "type": "timeseries"
+      },
+      {
+        "datasource": {"type": "prometheus", "uid": "Prometheus"},
+        "fieldConfig": {"defaults": {"unit": "percentunit"}, "overrides": []},
+        "gridPos": {"h": 8, "w": 8, "x": 16, "y": 0},
+        "id": 3,
+        "options": {"legend": {"displayMode": "list"}},
+        "targets": [
+          {
+            "expr": "sum(rate(triage_errors_total[5m])) / clamp_min(sum(rate(triage_requests_total[5m])), 0.001)",
+            "legendFormat": "Taxa de erro",
+            "refId": "A"
+          }
+        ],
+        "title": "Taxa de erro",
+        "type": "timeseries"
+      }
+    ],
+    "refresh": "10s",
+    "schemaVersion": 39,
+    "tags": ["triage", "medical", "api"],
+    "templating": {"list": []},
+    "time": {"from": "now-15m", "to": "now"},
+    "timezone": "browser",
+    "title": "Medical Triage API",
+    "uid": "medical-triage-api",
+    "version": 1
+  }
