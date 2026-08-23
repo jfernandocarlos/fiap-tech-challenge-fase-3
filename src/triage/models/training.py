@@ -1,9 +1,14 @@
-"""Treinamento e persistência do classificador (joblib)."""
+"""Treinamento, persistência e exportação ONNX do classificador."""
 
 import json
 from datetime import datetime, timezone
+from pathlib import Path
 
 import joblib
+from skl2onnx import convert_sklearn
+from skl2onnx.common.data_types import StringTensorType
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import (
     accuracy_score,
     classification_report,
@@ -16,6 +21,7 @@ from sklearn.pipeline import Pipeline
 from src.triage.config import (
     METRICS_PATH,
     MODELS_DIR,
+    ONNX_MODEL_PATH,
     SKLEARN_MODEL_PATH,
     load_params,
     settings,
@@ -83,7 +89,37 @@ def train_model(source: str = "raw") -> tuple[Pipeline, dict[str, object]]:
 
     MODELS_DIR.mkdir(parents=True, exist_ok=True)
     joblib.dump(pipeline, SKLEARN_MODEL_PATH)
+    export_to_onnx(pipeline)
     METRICS_PATH.write_text(json.dumps(metrics, indent=2), encoding="utf-8")
 
     logger.info("modelo treinado", f1_macro=metrics["f1_macro"], path=str(SKLEARN_MODEL_PATH))
     return pipeline, metrics
+
+
+def export_to_onnx(pipeline: Pipeline, output_path: Path | None = None) -> Path:
+    """Exporta pipeline sklearn para ONNX.
+
+    Args:
+        pipeline: Pipeline treinado (TF-IDF + classificador).
+        output_path: Destino opcional; padrão ``models/triage_pipeline.onnx``.
+
+    Returns:
+        Caminho do arquivo ONNX gerado.
+    """
+    target = output_path or ONNX_MODEL_PATH
+    initial_type = [("input", StringTensorType([None, 1]))]
+    options = {
+        LogisticRegression: {"zipmap": False},
+        RandomForestClassifier: {"zipmap": False},
+    }
+    onnx_model = convert_sklearn(
+        pipeline,
+        initial_types=initial_type,
+        target_opset=15,
+        options=options,
+    )
+    target.parent.mkdir(parents=True, exist_ok=True)
+    with open(target, "wb") as file:
+        file.write(onnx_model.SerializeToString())
+    logger.info("modelo exportado para ONNX", path=str(target))
+    return target
