@@ -41,7 +41,7 @@ class Settings(BaseSettings):
     api_port: int = Field(default=8000, description="Porta da API")
     api_key: str = Field(default="dev-api-key-change-me", description="Chave de API")
     inference_backend: str = Field(
-        default="sklearn",
+        default="onnx",
         description="Backend de inferência: sklearn ou onnx",
     )
 

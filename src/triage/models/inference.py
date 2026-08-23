@@ -1,48 +1,48 @@
-"""Registro de artefatos sklearn carregados no startup da API."""
+"""Registro de artefatos e backend de inferência ativo."""
 
-import joblib
-from sklearn.pipeline import Pipeline
 from src.triage.config import ONNX_MODEL_PATH, SKLEARN_MODEL_PATH, settings
+from src.triage.models.backends import InferenceBackend, get_inference_backend
 
 
 class ModelRegistry:
-    """Carrega o pipeline sklearn e expõe predict."""
+    """Registro de artefatos carregados no startup da API.
+
+    Delega a predição ao backend configurado (padrão Strategy).
+    """
 
     def __init__(self) -> None:
         self.backend_name = settings.inference_backend.lower()
-        self.pipeline: Pipeline | None = None
+        self.backend: InferenceBackend | None = None
         self.model_loaded = False
 
     def load(self) -> None:
-        """Carrega ``triage_pipeline.joblib`` se existir."""
-        if not SKLEARN_MODEL_PATH.exists():
-            self.model_loaded = False
-            return
-        self.pipeline = joblib.load(SKLEARN_MODEL_PATH)
-        self.backend_name = "sklearn"
-        self.model_loaded = True
+        """Carrega o backend de inferência conforme ``INFERENCE_BACKEND``."""
+        self.backend = get_inference_backend(self.backend_name)
+        self.model_loaded = self.backend.load()
 
     def predict(self, text: str) -> tuple[str, dict[str, float]]:
-        """Prediz urgência com sklearn.
+        """Executa predição no backend ativo.
 
         Args:
             text: Texto do laudo médico.
 
         Returns:
             Tupla ``(urgência, probabilidades)``.
+
+        Raises:
+            RuntimeError: Se o modelo não estiver carregado.
         """
-        if not self.model_loaded or self.pipeline is None:
+        if not self.model_loaded or self.backend is None:
             msg = "Modelo não carregado"
             raise RuntimeError(msg)
-
-        label = str(self.pipeline.predict([text])[0])
-        probas = self.pipeline.predict_proba([text])[0]
-        classes = list(self.pipeline.classes_)
-        probabilities = {cls: float(prob) for cls, prob in zip(classes, probas, strict=True)}
-        return label, probabilities
+        return self.backend.predict(text)
 
     def artifact_status(self) -> dict[str, bool]:
-        """Informa quais artefatos existem no disco."""
+        """Informa quais artefatos existem no disco.
+
+        Returns:
+            Mapa ``sklearn`` / ``onnx`` → arquivo presente.
+        """
         return {
             "sklearn": SKLEARN_MODEL_PATH.exists(),
             "onnx": ONNX_MODEL_PATH.exists(),
