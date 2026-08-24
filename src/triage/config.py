@@ -29,6 +29,7 @@ SKLEARN_MODEL_PATH = MODELS_DIR / "triage_pipeline.joblib"
 ONNX_MODEL_PATH = MODELS_DIR / "triage_pipeline.onnx"
 METRICS_PATH = MODELS_DIR / "metrics.json"
 LATENCY_REPORT_PATH = MODELS_DIR / "latency_report.json"
+LATENCY_COMPARISON_PATH = PROJECT_ROOT / "docs" / "latency_comparison.md"
 
 
 class Settings(BaseSettings):

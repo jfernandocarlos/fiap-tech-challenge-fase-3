@@ -42,6 +42,9 @@ stack-up: ## Sobe API + Prometheus + Grafana
 stack-down: ## Para stack de monitoramento
 	docker compose down
 
+benchmark: ## Compara latência sklearn vs ONNX (gera latency_report.json + docs/latency_comparison.md)
+	poetry run $(PYTHON) -m scripts.benchmark_latency
+
 clean: ## Remove caches locais
 	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
 	rm -rf .pytest_cache .ruff_cache .mypy_cache htmlcov .coverage
