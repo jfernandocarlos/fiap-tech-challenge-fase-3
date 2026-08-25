@@ -4,7 +4,8 @@ import time
 from contextlib import asynccontextmanager
 
 import uvicorn
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Security
+from fastapi.security import APIKeyHeader
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from src.triage import __version__
 from src.triage.api.metrics import PREDICTION_COUNT, PREDICTION_LATENCY
@@ -17,6 +18,8 @@ from src.triage.models.inference import ModelRegistry
 from starlette.responses import Response
 
 logger = get_logger(__name__)
+api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
+
 registry = ModelRegistry()
 
 RECOMMENDATIONS = {
@@ -26,10 +29,17 @@ RECOMMENDATIONS = {
 }
 
 
+def verify_api_key(api_key: str | None = Security(api_key_header)) -> None:
+    """Valida chave de API quando configurada."""
+    if settings.api_key and api_key != settings.api_key:
+        raise HTTPException(status_code=401, detail="API key inválida ou ausente")
+
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     setup_logging()
-    logger.info("iniciando API de triagem", version=__version__)
+    logger.info("iniciando API de triagem", version=__version__, backend=settings.inference_backend)
+    registry.backend_name = settings.inference_backend.lower()
     registry.load()
     yield
     logger.info("encerrando API")
@@ -37,7 +47,7 @@ async def lifespan(_app: FastAPI):
 
 app = FastAPI(
     title="Medical Triage API",
-    description="Classificação de urgência em laudos médicos (NLP leve).",
+    description="Classificação de urgência em laudos médicos (NLP leve + ONNX).",
     version=__version__,
     lifespan=lifespan,
 )
@@ -63,7 +73,12 @@ async def metrics() -> Response:
     return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
 
-@app.post("/predict", response_model=PredictionResponse, tags=["Predição"])
+@app.post(
+    "/predict",
+    response_model=PredictionResponse,
+    tags=["Predição"],
+    dependencies=[Depends(verify_api_key)],
+)
 async def predict(report: ReportInput) -> PredictionResponse:
     """Classifica urgência de um laudo médico."""
     if not registry.model_loaded:
@@ -98,7 +113,7 @@ async def predict(report: ReportInput) -> PredictionResponse:
         urgency=urgency,
         confidence=round(confidence, 4),
         probabilities=typed_probabilities,
-        backend="sklearn",
+        backend=registry.backend_name,  # type: ignore[arg-type]
         recommendation=RECOMMENDATIONS[urgency],
     )
 
