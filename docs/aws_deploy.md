@@ -15,7 +15,12 @@ Se você tem mais de um profile na máquina (ex.: conta pessoal e conta da FIAP)
 
 ```bash
 # listar profiles disponíveis
+# AWS CLI v2:
 aws configure list-profiles
+
+# AWS CLI v1 (alternativa compatível):
+grep '^\[' ~/.aws/credentials 2>/dev/null | tr -d '[]'
+grep '^\[profile ' ~/.aws/config 2>/dev/null | sed 's/\[profile \(.*\)\]/\1/'
 
 # usar um profile específico nesta sessão de terminal
 export AWS_PROFILE=seu-profile
@@ -28,6 +33,16 @@ Alternativa sem variável de ambiente: adicione `--profile seu-profile` em cada 
 
 > Os exemplos abaixo assumem que `AWS_PROFILE` já foi exportado (ou que você usa o profile `default`).
 
+**`list-profiles` ainda falha após `brew install awscli`?** O pyenv/pip pode estar
+priorizando um AWS CLI v1 antigo. Confira:
+
+```bash
+which aws && aws --version
+# se mostrar pyenv/shims e aws-cli/1.x, use o v2 do Homebrew:
+/opt/homebrew/bin/aws configure list-profiles
+# ou remova o v1: pip uninstall awscli
+```
+
 ## Passo 1 — Treinar artefatos
 
 ```bash
@@ -37,6 +52,9 @@ ls models/   # deve conter triage_pipeline.joblib, triage_pipeline.onnx, metrics
 ```
 
 ## Passo 2 — Push para ECR
+
+> **Zsh:** use `${VAR}:latest` (com chaves). Sem chaves, `$ECR_REPO:latest` vira
+> `medical-triage-apiatest` porque o zsh interpreta `:l` como modificador lowercase.
 
 ```bash
 # opcional, se ainda não exportou no início
@@ -52,11 +70,14 @@ aws ecr get-login-password --region $AWS_REGION | \
   docker login --username AWS --password-stdin \
   $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
 
-docker build -t $ECR_REPO .
-docker tag $ECR_REPO:latest \
-  $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO:latest
-docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO:latest
+docker build --platform linux/amd64 -t ${ECR_REPO}:latest .
+docker tag ${ECR_REPO}:latest \
+  ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}:latest
+docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}:latest
 ```
+
+> **Mac Apple Silicon (M1/M2/M3):** o ECS Fargate usa **linux/amd64**. Sem
+> `--platform linux/amd64`, a task falha com `exec format error` nos logs.
 
 ## Passo 3 — CloudFormation
 
@@ -65,7 +86,7 @@ aws cloudformation deploy \
   --template-file cloudformation.yaml \
   --stack-name medical-triage-prod \
   --parameter-overrides \
-    ImageUri=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO:latest \
+    ImageUri=${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}:latest \
     ApiKey=$(openssl rand -hex 16) \
   --capabilities CAPABILITY_NAMED_IAM \
   --region $AWS_REGION
@@ -111,4 +132,28 @@ Para deploy mais rápido (sem VPC manual), siga o padrão da Fase 1 em
 # use o mesmo AWS_PROFILE da sessão de deploy
 aws cloudformation delete-stack --stack-name medical-triage-prod
 aws ecr delete-repository --repository-name $ECR_REPO --force
+```
+
+## Troubleshooting ECS
+
+| Sintoma | Causa provável | Solução |
+|---------|----------------|---------|
+| Task para com `exec format error` | Imagem ARM64 no Mac, Fargate x86_64 | `docker build --platform linux/amd64 ...` e novo push |
+| Task reinicia em loop | Health check falha (`model_loaded: false`) | Confirme `models/*.onnx` no build (`make train`) |
+| `CannotPullContainerError` | Imagem não existe no ECR ou URI errada | Verifique `ImageUri` no CloudFormation |
+
+Após corrigir a imagem, force novo deploy:
+
+```bash
+aws ecs update-service \
+  --cluster medical-triage-cluster \
+  --service medical-triage-service \
+  --force-new-deployment \
+  --region ${AWS_REGION}
+```
+
+Ver logs da task:
+
+```bash
+aws logs tail /ecs/medical-triage --follow --region ${AWS_REGION}
 ```

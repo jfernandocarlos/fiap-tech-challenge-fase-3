@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: >
-  ECS Fargate + ALB para a API de triagem médica (Tech Challenge Fase 3).
+  ECS Fargate + ALB para a API de triagem médica.
   HTTPS via ALB, imagem no ECR, health check em /health.
 
 Parameters:
